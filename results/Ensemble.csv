@@ -1,0 +1,10 @@
+,0
+elapsed_time,4.065219063469682
+accuracy,0.8758815232722144
+f1,0.9338345864661654
+jaccard,0.8758815232722144
+remaining_useful_life_min,0.3782051282051282
+remaining_useful_life_mean,0.7670834936612727
+remaining_useful_life_median,0.7485714285714286
+remaining_useful_life_max,0.995475113122172
+remaining_useful_life_std,0.10788504813274054
