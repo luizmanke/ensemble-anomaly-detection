@@ -13,12 +13,17 @@ from pyod.models.knn import KNN as BaseKNN
 from pyod.models.lof import LocalOutlierFactor as BaseLOF
 from pyod.models.ocsvm import OCSVM as BaseOCSVM
 from pyod.models.pca import PCA as BasePCA
+from scipy.stats import iqr
 
 # Configurations
 warnings.filterwarnings("ignore")
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
 np.random.seed(1)
 tensorflow.random.set_seed(1)
+
+
+def _get_threshold(scores):
+    return np.median(scores) + 1.5 * iqr(scores)
 
 
 class AutoEncoder(BaseAE):
@@ -63,7 +68,8 @@ class IsolationForest(BaseIF):
 
     def fit(self, x, y=None):
         self.model_.fit(x)
-        self.model_threshold_ = self.model_.offset_.copy() * -1
+        scores = self.decision_function(x)
+        self.model_threshold_ = _get_threshold(scores)
 
     def predict(self, x):
         scores = self.model_.decision_function(x)
@@ -73,6 +79,11 @@ class IsolationForest(BaseIF):
     def decision_function(self, x):
         scores = self.model_.score_samples(x) * -1
         return scores
+
+    def get_norm_scores(self, x):
+        scores = self.decision_function(x)
+        scores_norm = scores / self.model_threshold_
+        return scores_norm
 
 
 class KNN(BaseKNN):
@@ -85,12 +96,18 @@ class KNN(BaseKNN):
 
     def fit(self, x, y=None):
         BaseKNN.fit(self, x)
-        self.model_threshold_ = self.threshold_.copy()
+        scores = BaseKNN.decision_function(self, x)
+        self.model_threshold_ = _get_threshold(scores)
 
     def predict(self, x):
         scores = BaseKNN.decision_function(self, x)
         predictions = np.where(scores <= self.model_threshold_, 0, 1)
         return predictions
+
+    def get_norm_scores(self, x):
+        scores = BaseKNN.decision_function(self, x)
+        scores_norm = scores / self.model_threshold_
+        return scores_norm
 
 
 class LocalOutlierFactor(BaseLOF):
@@ -104,7 +121,8 @@ class LocalOutlierFactor(BaseLOF):
 
     def fit(self, x, y=None):
         self.model_.fit(x)
-        self.model_threshold_ = self.model_.offset_.copy() * -1
+        scores = self.decision_function(x)
+        self.model_threshold_ = _get_threshold(scores)
 
     def predict(self, x):
         scores = self.decision_function(x)
@@ -114,6 +132,11 @@ class LocalOutlierFactor(BaseLOF):
     def decision_function(self, x):
         scores = self.model_.score_samples(x) * -1
         return scores
+
+    def get_norm_scores(self, x):
+        scores = self.decision_function(x)
+        scores_norm = scores / self.model_threshold_
+        return scores_norm
 
 
 class OneClassSVM(BaseOCSVM):
@@ -126,12 +149,18 @@ class OneClassSVM(BaseOCSVM):
 
     def fit(self, x, y=None):
         BaseOCSVM.fit(self, x)
-        self.model_threshold_ = self.threshold_.copy()
+        scores = BaseOCSVM.decision_function(self, x)
+        self.model_threshold_ = _get_threshold(scores)
 
     def predict(self, x):
         scores = BaseOCSVM.decision_function(self, x)
         predictions = np.where(scores <= self.model_threshold_, 0, 1)
         return predictions
+
+    def get_norm_scores(self, x):
+        scores = BaseOCSVM.decision_function(self, x)
+        scores_norm = scores / self.model_threshold_
+        return scores_norm
 
 
 class PCA(BasePCA):
@@ -143,12 +172,18 @@ class PCA(BasePCA):
 
     def fit(self, x, y=None):
         BasePCA.fit(self, x)
-        self.model_threshold_ = self.threshold_.copy()
+        scores = BasePCA.decision_function(self, x)
+        self.model_threshold_ = _get_threshold(scores)
 
     def predict(self, x):
         scores = BasePCA.decision_function(self, x)
         predictions = np.where(scores <= self.model_threshold_, 0, 1)
         return predictions
+
+    def get_norm_scores(self, x):
+        scores = BaseOCSVM.decision_function(self, x)
+        scores_norm = scores / self.model_threshold_
+        return scores_norm
 
 
 class Ensemble:
@@ -160,16 +195,22 @@ class Ensemble:
 
     def __init__(self):
         self.models_ = []
+        self.model_threshold_ = []
 
-    def fit(self, x, y=None):
+    def fit(self, x):
+        scores = np.zeros(len(x))
         for model in self.models_:
-            model.fit(x)
+            scores += model.get_norm_scores(x)
+        self.model_threshold_ = _get_threshold(scores)
+
+    def stacking(self, x):
+        scores = np.zeros((len(x), len(self.models_)))
+        for i, model in enumerate(self.models_):
+            scores[:, i] = model.get_norm_scores(x)
 
     def predict(self, x):
-        predictions = []
+        scores = np.zeros(len(x))
         for model in self.models_:
-            predictions.append(model.predict(x))
-        predictions = np.vstack(predictions).transpose()
-        predictions = predictions.sum(axis=1)
-        predictions = np.where(predictions < 1, 0, 1)
+            scores += model.get_norm_scores(x)
+        predictions = np.where(scores <= self.model_threshold_, 0, 1)
         return predictions

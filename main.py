@@ -30,11 +30,8 @@ DATASETS = {"IMS": dr.ims,
             "Turbofan": dr.turbofan}
 
 
-# TODO: Create another model
 # TODO: Refactor sample creation
-# TODO: Load more datasets
-# TODO: Create visualizations
-# TODO: Create classes in dataset_reader.py
+# TODO: Create visualizations (scores)
 def run():
     results = {}
 
@@ -125,7 +122,6 @@ def _create_samples(data):
 
 
 def _create_model(model_name, x_train, x_test, y_test):
-    OUTLIER_FACTOR = 2.5
     initial_time = dt.datetime.now()
 
     def get_best_model(model_name):
@@ -148,11 +144,6 @@ def _create_model(model_name, x_train, x_test, y_test):
         model.fit(x_train)
         return model
 
-    def expand_threshold(model):
-        scores = model.decision_function(x_train)
-        model.model_threshold_ = \
-            np.min(scores) + (np.max(scores) - np.min(scores)) * OUTLIER_FACTOR
-
     # Train
     if model_name != "Ensemble":
         model_class = MODELS[model_name]
@@ -162,13 +153,7 @@ def _create_model(model_name, x_train, x_test, y_test):
         for _, submodel_class in MODELS[model_name].MODELS.items():
             model_class = submodel_class
             best_model.models_.append(get_best_model(model_name))
-
-    # Expand threshold
-    if model_name != "Ensemble":
-        expand_threshold(best_model)
-    else:
-        for model in best_model.models_:
-            expand_threshold(model)
+        best_model.fit(x_train)
 
     elapsed_time = dt.datetime.now() - initial_time
     return best_model, elapsed_time.total_seconds()
