@@ -203,14 +203,16 @@ class Ensemble:
             scores += model.get_norm_scores(x)
         self.model_threshold_ = _get_threshold(scores)
 
-    def stacking(self, x):
-        scores = np.zeros((len(x), len(self.models_)))
-        for i, model in enumerate(self.models_):
-            scores[:, i] = model.get_norm_scores(x)
-
     def predict(self, x):
         scores = np.zeros(len(x))
         for model in self.models_:
             scores += model.get_norm_scores(x)
         predictions = np.where(scores <= self.model_threshold_, 0, 1)
         return predictions
+
+    def get_norm_scores(self, x):
+        scores = np.zeros(len(x))
+        for model in self.models_:
+            scores += model.get_norm_scores(x)
+        scores_norm = scores / self.model_threshold_
+        return scores_norm

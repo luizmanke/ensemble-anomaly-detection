@@ -4,6 +4,7 @@
 # System libraries
 import datetime as dt
 import numpy as np
+import matplotlib.pyplot as plt
 import pandas as pd
 from hyperopt import fmin, tpe
 from joblib import delayed, Parallel
@@ -17,6 +18,10 @@ from samples_generator import SelfAdaptiveShifting
 
 # Configurations
 np.random.seed(1)
+
+# Globals
+DATASETS = {"IMS": dr.ims,
+            "Turbofan": dr.turbofan}
 MODELS = {
     # "AutoEncoder": models.AutoEncoder,
     # "IsolationForest": models.IsolationForest,
@@ -26,19 +31,16 @@ MODELS = {
     # "PCA": models.PCA,
     "Ensemble": models.Ensemble,
 }
-DATASETS = {"IMS": dr.ims,
-            "Turbofan": dr.turbofan}
 
 
 # TODO: Refactor sample creation
-# TODO: Create visualizations (scores)
 def run():
     results = {}
 
     # Compute cases
     cases, labels = _get_data(dataset_name="Turbofan")
     results_list = Parallel(n_jobs=-1, verbose=10)(
-        delayed(_compute_case)(data) for data in cases)
+        delayed(_compute_case)(i, data) for i, data in enumerate(cases))
 
     # Concatenate results
     results = {}
@@ -62,7 +64,7 @@ def _get_data(dataset_name):
     return cases, labels
 
 
-def _compute_case(data):
+def _compute_case(case, data):
     data = data.values
 
     # Split data
@@ -78,13 +80,14 @@ def _compute_case(data):
 
     # Loop models
     results = {}
+    scores = {}
     for model_name in MODELS:
 
         # Create model
         model, elapsed_time = _create_model(model_name, x_train_norm, x_pseudo, y_pseudo)
 
         # Predict
-        predictions = _predict(model, data_norm)
+        predictions, scores[model_name] = _predict(model, data_norm)
         label_pred, life_period = _find_anomalies(predictions)
 
         # Append
@@ -93,6 +96,16 @@ def _compute_case(data):
             "label_pred": label_pred,
             "life_period": life_period
         }
+
+    # Plot
+    if case % 35 == 0:
+        plt.figure()
+        plt.hlines(1, 0, len(data), linestyle="--", colors="red")
+        for model_name, points in scores.items():
+            plt.plot(points, label=model_name)
+        plt.legend(loc="best")
+        plt.savefig(f"figures/case_{case}.png")
+        plt.close()
 
     return results
 
@@ -161,7 +174,8 @@ def _create_model(model_name, x_train, x_test, y_test):
 
 def _predict(model, data):
     predictions = model.predict(data)
-    return predictions
+    scores = model.get_norm_scores(data)
+    return predictions, scores
 
 
 def _find_anomalies(predictions):
