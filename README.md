@@ -8,7 +8,13 @@ The results for each approach is evaluated using standard accuracy, F1 and Jacca
 
 The conclusion is that ensemble methods can perform better than individual methods, once the combination of models can make up for each individual drawbacks, since its hyperparameter tuning is also a challenge.
 
-## Anomaly Scores Comparison
+## Preliminary Results
+
+<blank> | KNN | LocalOutlierFactor | OneClassSVM | Ensemble
+--- | --- | --- | --- | ---
+accuracy | 0.889 | 0.913 | 0.879 | **0.945**
+f1-score | 0.941 | 0.954 | 0.935 | **0.972**
+jaccard | 0.889 | 0.913 | 0.879 | **0.945**
 
 <img src="https://github.com/luizmanke/ensemble-anomaly-detection/blob/master/figures/case_0.png" width="500">  <img src="https://github.com/luizmanke/ensemble-anomaly-detection/blob/master/figures/case_70.png" width="500">
 
