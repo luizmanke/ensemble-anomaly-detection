@@ -8,15 +8,19 @@ The results for each approach is evaluated using standard accuracy, F1 and Jacca
 
 The conclusion is that ensemble methods can perform better than individual methods, once the combination of models can make up for each individual drawbacks, since its hyperparameter tuning is also a challenge.
 
-## Preliminary Results
+<div style='text-align:center'><img src='images/turbofan.jpg'/></div>
 
-<blank> | KNN | LocalOutlierFactor | OneClassSVM | Ensemble
---- | --- | --- | --- | ---
-accuracy | 0.889 | 0.913 | 0.879 | **0.945**
-f1-score | 0.941 | 0.954 | 0.935 | **0.972**
-jaccard | 0.889 | 0.913 | 0.879 | **0.945**
+## Development
 
-<img src="https://github.com/luizmanke/ensemble-anomaly-detection/blob/master/figures/case_0.png" width="500">  <img src="https://github.com/luizmanke/ensemble-anomaly-detection/blob/master/figures/case_70.png" width="500">
+- [Preprocess](sources/1_preprocess.ipynb)
+- [Exploratory Data Analysis](sources/2_eda.ipynb)
+- [Modeling](sources/3_modeling.ipynb)
+
+## Results
+
+<blank> | KNN | LocalOutlierFactor | OneClassSVM
+--- | --- | --- | ---
+f1-score | 0.762 | 0.998 | 0.999
 
 ## References
 * https://ti.arc.nasa.gov/tech/dash/groups/pcoe/prognostic-data-repository/
